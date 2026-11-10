@@ -1,0 +1,19 @@
+{
+ "id": "./",
+ "name": "Modather Hub",
+ "short_name": "Modather",
+ "description": "Study, habits, gym and notes planner",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "display_override": ["standalone", "minimal-ui"],
+ "orientation": "any",
+ "background_color": "#f2f4f7",
+ "theme_color": "#f2f4f7",
+ "categories": ["productivity", "education"],
+ "icons": [
+  {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+  {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+  {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+ ]
+}
