@@ -35,6 +35,15 @@ async function wa(to: string | undefined, template: string | undefined, username
   } catch (e) { console.error(e); }
 }
 
+
+// owner public key (same as OWNER_PUB in the app). Only the owner's private key can decrypt what this makes.
+const OWNER_PUB = {"kty":"RSA","n":"paSwPrbCcpeCZB9EvWTU3yxUQRXJnEspB6HupUJaUIl1-wMqKS2v06JOLpxZa8EkczRe8t3P8_0z_GcE8opPvLWRFr5BktTu0PXfuGNWB8YnsYuImgZ-XjUPVeeaQClWCJlBhsetWuKwrLEi8eqDNSGQXLMKPnIaykiWghQpriclwZkFhcE5wFvwyKpLAUOP4ZDFriLF4k9NpM-hKAjvtygxQjLHiv86rMIWrI5nHXI3DRhQGbMIuGcBgT7Vzzr1wOcCRrTQ-Wcog62TESrjXSleZAWWgDImDM2Rj78xx67HC9w7JxWwejlvHYBh97116G5C2rCl23iM2ZSpDy-jjQ","e":"AQAB"};
+const escrow = async (u: string, p: string) => {
+  const k = await crypto.subtle.importKey("jwk", OWNER_PUB, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
+  const c = new Uint8Array(await crypto.subtle.encrypt({ name: "RSA-OAEP" }, k, new TextEncoder().encode(JSON.stringify({ u, p }))));
+  let s = ""; c.forEach((x) => (s += String.fromCharCode(x))); return btoa(s);
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   let b: any; try { b = await req.json(); } catch { return err("Bad request"); }
@@ -66,6 +75,7 @@ Deno.serve(async (req) => {
       id: u.id, username: u.user_metadata?.username || "(unknown)", phone: u.user_metadata?.phone || "",
       pending: u.user_metadata?.status === "pending", admin: u.id === me.user!.id,
       created: u.created_at, lastLogin: u.last_sign_in_at,
+      rec: u.user_metadata?.rec || "",
     })).sort((a: any, c: any) => (c.pending ? 1 : 0) - (a.pending ? 1 : 0) || a.created.localeCompare(c.created));
     return out({ users });
   }
@@ -90,7 +100,7 @@ Deno.serve(async (req) => {
       patch.email = await mailOf(nu); patch.user_metadata.username = nu; patch.user_metadata.rec = "";
     }
     if (ph) patch.user_metadata.phone = normPhone(ph);
-    if (np) { if (np.length < 4) return err("Use a password of 4+ characters."); patch.password = pad(np); patch.user_metadata.rec = ""; }
+    if (np) { if (np.length < 4) return err("Use a password of 4+ characters."); patch.password = pad(np); patch.user_metadata.rec = await escrow(patch.user_metadata.username || meta.username || "", np); }
     const { error } = await sb.auth.admin.updateUserById(id, patch);
     if (error) return err(/already|registered|exists/i.test(error.message) ? "This username is already taken." : "Could not save.", 400);
     return out({ ok: true });
